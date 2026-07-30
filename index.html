@@ -2302,8 +2302,29 @@ function writeBackupSheet_(parsed) {
         var origCatId = (vObj.snippet && vObj.snippet.categoryId) ? vObj.snippet.categoryId : '22';
 
         try {
-          if (thumbFiles && thumbFiles[i]) {
-            await apiSetThumbnail(vid, thumbFiles[i]);
+          var thumbErrStr = '';
+          if (thumbFiles && thumbFiles.length > 0) {
+            var thumbSuccess = false;
+            while (thumbFiles.length > 0 && !thumbSuccess) {
+              var currentThumb = thumbFiles[0];
+              try {
+                await apiSetThumbnail(vid, currentThumb);
+                thumbSuccess = true;
+                thumbFiles.shift(); // consume it
+              } catch (err) {
+                if (err.message === '403_QUOTA' || (err.message && err.message.toLowerCase().includes('quota'))) throw err;
+                var isInvalid = err.message.includes('invalidImage') || err.message.includes('400');
+                if (isInvalid) {
+                  console.warn('Thumbnail err for ' + vid + ':', err.message, '-> Discarding image & trying next');
+                  thumbFiles.shift(); // discard this invalid image, loop will try the next one
+                } else {
+                  console.warn('Thumbnail upload failed (non-invalid) for ' + vid + ':', err.message);
+                  thumbSuccess = true; // stop trying for this video
+                  thumbErrStr = ' (Gagal upload thumbnail)';
+                  thumbFiles.shift(); // discard to not get stuck
+                }
+              }
+            }
           }
           if (pub !== null || hasMeta) {
             await apiSet(vid, pub, hasMeta ? metadata : null, origCatId);
@@ -2315,6 +2336,7 @@ function writeBackupSheet_(parsed) {
           if (btn) btn.textContent = 'Menyimpan ' + ok + '/' + total + '...';
           var sIdx = A.bulk.selected.indexOf(vid);
           if (sIdx > -1) A.bulk.selected.splice(sIdx, 1);
+          if (thumbErrStr) toast('Video tersimpan' + thumbErrStr, 'wrn');
         } catch (e) {
           if (e.message === '403_QUOTA' || (e.message && e.message.toLowerCase().includes('quota'))) {
             // PAUSE: persist progress made so far, stash the remaining queue,
