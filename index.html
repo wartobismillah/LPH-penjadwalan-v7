@@ -2545,9 +2545,16 @@ function writeBackupSheet_(parsed) {
       render();
     }
     function selectAllBulk() {
-      var unscheduled = getDrafts().filter(function (v) { return !A.scheduled[v.id] });
+      var sourceList = [];
+      if (A.bulk.subTab === 'pub') {
+        sourceList = getPublished();
+      } else if (A.bulk.subTab === 'sched') {
+        sourceList = getDrafts().filter(function (v) { return !!A.scheduled[v.id] });
+      } else {
+        sourceList = getDrafts().filter(function (v) { return !A.scheduled[v.id] });
+      }
       var q = (A.searchQuery || '').toLowerCase();
-      var targetList = q ? unscheduled.filter(function (v) { return getTitle(v).toLowerCase().includes(q); }) : unscheduled;
+      var targetList = q ? sourceList.filter(function (v) { return getTitle(v).toLowerCase().includes(q); }) : sourceList;
       var targetIds = targetList.map(function (v) { return v.id });
       if (!targetIds.length) return;
 
