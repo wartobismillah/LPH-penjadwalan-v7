@@ -2553,6 +2553,7 @@ function writeBackupSheet_(parsed) {
       } else {
         sourceList = getDrafts().filter(function (v) { return !A.scheduled[v.id] });
       }
+
       var q = (A.searchQuery || '').toLowerCase();
       var targetList = q ? sourceList.filter(function (v) { return getTitle(v).toLowerCase().includes(q); }) : sourceList;
       var targetIds = targetList.map(function (v) { return v.id });
