@@ -2537,6 +2537,15 @@ function writeBackupSheet_(parsed) {
 
     function prepareCalSave() { prepareSavePreview('cal'); }
 
+    function switchBulkTab(tab) {
+      if (A.bulk.subTab !== tab) {
+        A.bulk.selected = []; // clear selections when switching tabs
+        A.bulk.subTab = tab;
+        persistDraftState();
+        render();
+      }
+    }
+
     function toggleBulkSel(id) {
       var idx = A.bulk.selected.indexOf(id);
       if (idx > -1) A.bulk.selected.splice(idx, 1);
@@ -2889,11 +2898,11 @@ function writeBackupSheet_(parsed) {
 
       // Sub-tab bar
       var h = '<div style="display:flex;gap:0;margin-bottom:1.25rem;border-bottom:1px solid var(--border)">';
-      h += '<button class="tab' + (b.subTab === 'unsched' ? ' active' : '') + '" onclick="A.bulk.subTab=\'unsched\';render()">' +
+      h += '<button class="tab' + (b.subTab === 'unsched' ? ' active' : '') + '" onclick="switchBulkTab(\'unsched\')">' +
         '📋 Belum Dijadwalkan <span style="background:var(--orange-bg);color:var(--orange);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">' + unscheduled.length + '</span></button>';
-      h += '<button class="tab' + (b.subTab === 'sched' ? ' active' : '') + '" onclick="A.bulk.subTab=\'sched\';render()">' +
+      h += '<button class="tab' + (b.subTab === 'sched' ? ' active' : '') + '" onclick="switchBulkTab(\'sched\')">' +
         '✅ Sudah Terjadwal <span style="background:var(--green-bg);color:var(--green);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">' + scheduled.length + '</span></button>';
-      h += '<button class="tab' + (b.subTab === 'pub' ? ' active' : '') + '" onclick="A.bulk.subTab=\'pub\';render()">' +
+      h += '<button class="tab' + (b.subTab === 'pub' ? ' active' : '') + '" onclick="switchBulkTab(\'pub\')">' +
         '🌐 Sudah Publish <span style="background:var(--blue-bg);color:var(--blue);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">' + published.length + '</span></button>';
       h += '</div>';
 
