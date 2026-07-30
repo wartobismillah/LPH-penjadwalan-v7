@@ -1633,6 +1633,9 @@ function writeBackupSheet_(parsed) {
       showHidden: false,
       _meta: { titles: '', desc: '', tags: '' },
       previewData: null,
+      playlists: [],
+      uploadsPlaylistId: '',
+      selectedPlaylist: '',
       bulk: {
         subTab: 'unsched',  // 'unsched' | 'sched'
         mode: 'interval',
@@ -2077,31 +2080,45 @@ function writeBackupSheet_(parsed) {
 
     async function fetchVideos(forceAll) {
       try {
-        // ── Draft window cut-off ───────────────────────────────────
-        // Only fetch videos published/uploaded within draftWindowDays.
-        // Results come back newest-first (order=date), so we stop as
-        // soon as we hit a video older than the window — no need to
-        // page through the entire channel history.
+        A.step = 'loading'; render();
         var windowDays = (typeof DRAFT_WINDOW_DAYS !== 'undefined' ? DRAFT_WINDOW_DAYS : 90);
         var cutoff = forceAll ? new Date(0) : new Date(Date.now() - windowDays * 86400000); // ms
         A.fetchedAll = forceAll;
 
-        // ── Langkah 1: Ambil video terbaru, berhenti saat melewati window ──
+        // ── 0. Dapatkan uploadsPlaylistId jika belum ──
+        if (A.ytSelectedChannel && A.ytSelectedChannel.contentDetails) {
+          A.uploadsPlaylistId = A.ytSelectedChannel.contentDetails.relatedPlaylists.uploads;
+        }
+        if (!A.selectedPlaylist) A.selectedPlaylist = A.uploadsPlaylistId;
+
+        // ── 0.5. Load Playlists untuk Dropdown jika belum ──
+        if (!A.playlists || A.playlists.length === 0) {
+          var pUrl = 'https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=50';
+          var pr = await fetch(pUrl, { headers: { Authorization: 'Bearer ' + A.token } });
+          var pd = await pr.json();
+          if (pd.items) A.playlists = pd.items;
+        }
+
+        var targetPlaylistId = A.selectedPlaylist || A.uploadsPlaylistId;
+
+        // ── Langkah 1: Ambil playlistItems (JAUH LEBIH HEMAT KUOTA dibanding /search) ──
         var allSearchItems = [];
         var pageToken = '';
         var reachedOld = false;
         do {
-          var url = 'https://www.googleapis.com/youtube/v3/search?part=snippet&forMine=true&type=video&maxResults=50&order=date';
+          var url = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=' + targetPlaylistId + '&maxResults=50';
           if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
           var r1 = await fetch(url, { headers: { Authorization: 'Bearer ' + A.token } });
           var d1 = await r1.json();
           if (d1.error) throw new Error(d1.error.message);
           var pageItems = d1.items || [];
           for (var pi = 0; pi < pageItems.length; pi++) {
-            var publishedAt = pageItems[pi].snippet && pageItems[pi].snippet.publishedAt;
-            if (publishedAt && new Date(publishedAt) < cutoff) {
+            // Untuk custom playlist, tanggal upload asli ada di videoPublishedAt
+            var pubAt = (pageItems[pi].contentDetails && pageItems[pi].contentDetails.videoPublishedAt) ||
+                        (pageItems[pi].snippet && pageItems[pi].snippet.publishedAt);
+            if (pubAt && new Date(pubAt) < cutoff) {
               reachedOld = true;
-              break; // all remaining items are even older
+              break; 
             }
             allSearchItems.push(pageItems[pi]);
           }
@@ -2114,7 +2131,9 @@ function writeBackupSheet_(parsed) {
         var allVideos = [];
         for (var b = 0; b < allSearchItems.length; b += 50) {
           var batch = allSearchItems.slice(b, b + 50);
-          var ids = batch.map(function (i) { return i.id.videoId }).filter(Boolean).join(',');
+          var ids = batch.map(function (i) { 
+            return (i.contentDetails && i.contentDetails.videoId) || (i.snippet && i.snippet.resourceId && i.snippet.resourceId.videoId) || i.id;
+          }).filter(Boolean).join(',');
           if (!ids) continue;
           var r2 = await fetch('https://www.googleapis.com/youtube/v3/videos?part=snippet,status,contentDetails&id=' + ids,
             { headers: { Authorization: 'Bearer ' + A.token } });
@@ -2587,18 +2606,7 @@ function writeBackupSheet_(parsed) {
       render();
     }
     function selectAllBulk() {
-      var sourceList = [];
-      if (A.bulk.subTab === 'pub') {
-        sourceList = getPublished();
-      } else if (A.bulk.subTab === 'sched') {
-        sourceList = getDrafts().filter(function (v) { return !!A.scheduled[v.id] });
-      } else {
-        sourceList = getDrafts().filter(function (v) { return !A.scheduled[v.id] });
-      }
-
-      var q = (A.searchQuery || '').toLowerCase();
-      var targetList = q ? sourceList.filter(function (v) { return getTitle(v).toLowerCase().includes(q); }) : sourceList;
-      var targetIds = targetList.map(function (v) { return v.id });
+      var targetIds = window._currentBulkIds || [];
       if (!targetIds.length) return;
 
       var allTargetSelected = targetIds.every(function (id) { return A.bulk.selected.indexOf(id) > -1 });
@@ -3013,6 +3021,8 @@ function writeBackupSheet_(parsed) {
       var q = (A.searchQuery || '').toLowerCase();
       var matchingUnsched = q ? list.filter(function (v) { return getTitle(v).toLowerCase().includes(q); }) : list;
       var allMatchingSel = matchingUnsched.length > 0 && matchingUnsched.every(function (v) { return b.selected.indexOf(v.id) > -1 });
+      window._currentBulkIds = matchingUnsched.map(function(v) { return v.id });
+      
       var right = '<div>';
       right += '<div class="panel" style="margin-bottom:12px">';
       right += '<div class="panel-head" style="display:flex;align-items:center;gap:8px">📋 ' + (isPub ? 'Pilih Video' : 'Pilih Video yang Akan Dijadwalkan') + ' ' +
@@ -3292,6 +3302,19 @@ function writeBackupSheet_(parsed) {
 
     function renderDashboard() {
       var h = renderChBar() + renderStats();
+      
+      // Playlist Selector
+      if (A.playlists && A.playlists.length > 0) {
+        var pOpts = '<option value="' + esc(A.uploadsPlaylistId) + '">🌐 Semua Video (Global All)</option>';
+        A.playlists.forEach(function(p) {
+          pOpts += '<option value="' + esc(p.id) + '"' + (A.selectedPlaylist === p.id ? ' selected' : '') + '>📂 ' + esc(p.snippet.title) + '</option>';
+        });
+        h += '<div style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;background:var(--card);padding:10px;border-radius:var(--r2);border:1px solid var(--border)">';
+        h += '<label style="font-size:13px;font-weight:700;color:var(--t2);margin:0">Sumber Video:</label>';
+        h += '<select style="flex:1;padding:6px 10px;border-radius:var(--r);border:1px solid var(--border);font-size:13px;background:var(--bg);color:var(--text)" onchange="A.selectedPlaylist=this.value;fetchVideos(A.fetchedAll)">' + pOpts + '</select>';
+        h += '</div>';
+      }
+
       h += '<div class="tabs">' +
         '<button class="tab' + (A.tab === 'list' ? ' active' : '') + '" onclick="A.tab=\'list\';A.openPanel=null;render()">📋 Per Video</button>' +
         '<button class="tab' + (A.tab === 'bulk' ? ' active' : '') + '" onclick="A.tab=\'bulk\';A.openPanel=null;render()">🚀 Jadwal Massal</button>' +
