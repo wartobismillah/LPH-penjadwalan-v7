@@ -43,7 +43,6 @@ Berikut adalah rincian 3 Bug Fix dan 3 Fitur Baru (serta 3 perbaikan logika tamb
     // ═══════════════════════════════════════════════════════════
     // KONFIGURASI — diisi otomatis oleh sistem, jangan diedit manual
     const SHEETS_URL = "https://script.google.com/macros/s/AKfycbxim5HLcPx_YsfbEcNA0yZFM6AhJAAz2PhqKqP7W84YJyPlPE0FvH0uDNXDTvIezzw1HQ/exec";
-    const TEAM_PIN   = "siappakai";
     const DRAFT_WINDOW_DAYS = 90;
     // ═══════════════════════════════════════════════════════════
   </script>
@@ -1436,9 +1435,9 @@ Berikut adalah rincian 3 Bug Fix dan 3 Fitur Baru (serta 3 perbaikan logika tamb
       box-shadow: 0 0 0 3px rgba(255,0,0,.08)
     }
 
-    /* ── SETUP & PIN SCREEN CSS (Adoption from yt-monitor-v6) ── */
-    .screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: flex-start; justify-content: center; z-index: 500; padding: 20px; overflow-y: auto }
-    .screen-box { background: var(--card); border: 1px solid var(--border2); border-radius: var(--r); padding: 28px; width: 100%; max-width: 560px; margin: auto; box-shadow: var(--sh2) }
+    /* ── SETUP SCREEN CSS ── */
+    .screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 99999; padding: 20px; overflow-y: auto }
+    .screen-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--r3); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); padding: 30px; width: 100%; max-width: 600px }
     .s-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 22px }
     .s-logo h1 { font-size: 17px; font-weight: 700 }
     .s-logo p { font-size: 12px; color: var(--t3) }
@@ -1467,12 +1466,6 @@ Berikut adalah rincian 3 Bug Fix dan 3 Fitur Baru (serta 3 perbaikan logika tamb
     .dl-steps { text-align: left; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px }
     .dl-step { display: flex; gap: 10px; font-size: 13px; color: var(--green); align-items: flex-start }
     .dl-step .n { width: 20px; height: 20px; border-radius: 50%; background: var(--green); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px }
-    .screen-box.pin-box { max-width: 300px; text-align: center }
-    .cid-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px }
-    .cid-row input { flex: 1; height: 32px; padding: 0 10px; border: 1px solid var(--border2); border-radius: var(--r2); background: var(--hover); color: var(--text); font-size: 11px; font-family: monospace }
-    .cid-st { font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 600; white-space: nowrap }
-    .cid-st.active { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-b) }
-    .cid-st.idle { background: var(--hover); color: var(--t3) }
   </style>
 </head>
 
@@ -1564,18 +1557,13 @@ function writeBackupSheet_(parsed) {
   sheet.autoResizeColumns(1, 3);
 }</div><button class="copy-btn" onclick="copyCode()">Copy</button>Klik 💾 <strong>Save</strong> → klik ▶ <strong>Run</strong> → pilih <em>doGet</em> → izinkan akses Google. Setelah ini, tab baru bernama <strong>"Backup Database"</strong> akan otomatis muncul &amp; terisi tiap kali ada perubahan data.</div></div>
           <div class="step"><span class="step-n">3</span><div class="step-body">Klik <strong>Deploy → New deployment</strong> → pilih type <strong>Web app</strong> → isi:<br><em>Execute as</em>: <strong>Me</strong> &nbsp;·&nbsp; <em>Who has access</em>: <strong>Anyone</strong> → Deploy → izinkan → copy <strong>Web app URL</strong>.</div></div>
-          <div class="step"><span class="step-n">4</span><div class="step-body">Paste URL + buat PIN tim di form bawah, lalu klik <strong>Cek &amp; Generate File</strong>. Kamu akan download file <code>index.html</code> baru → upload ke GitHub atau hosting menggantikan file lama.</div></div>
+          <div class="step"><span class="step-n">4</span><div class="step-body">Paste URL di form bawah, lalu klik <strong>Cek &amp; Generate File</strong>. Kamu akan download file <code>index.html</code> baru → upload ke GitHub atau hosting menggantikan file lama.</div></div>
         </div>
         <div class="divider"></div>
         <div class="field">
           <label>Web App URL (dari Apps Script)</label>
           <input type="text" id="s-url" placeholder="https://script.google.com/macros/s/.../exec">
           <div class="help">Dari Deploy → Manage deployments → copy URL-nya</div>
-        </div>
-        <div class="field">
-          <label>PIN tim (4 digit)</label>
-          <input type="password" id="s-pin" placeholder="Bebas, contoh: tim123 atau rahasia2024">
-          <div class="help">Semua anggota tim pakai PIN yang sama untuk masuk</div>
         </div>
         <div id="s-err"></div>
         <button class="btn-full" id="s-btn" onclick="doSetup()" disabled="">Mengecek koneksi...</button>
@@ -1589,8 +1577,8 @@ function writeBackupSheet_(parsed) {
           <div class="dl-steps">
             <div class="dl-step"><span class="n">1</span><span>Klik tombol Download di bawah → simpan sebagai <strong>index.html</strong></span></div>
             <div class="dl-step"><span class="n">2</span><span>Buka repo GitHub → klik file <strong>index.html</strong> lama → klik ✏️ Edit → hapus semua → paste isi file baru → Commit</span></div>
-            <div class="dl-step"><span class="n">3</span><span>Atau lebih mudah: hapus file lama → Upload file baru langsung</span></div>
-            <div class="dl-step"><span class="n">4</span><span>Selesai! Tim buka link aplikasi → langsung masuk layar PIN</span></div>
+            <div class="dl-step"><span class="n">3</span><span>Atau lebih mudah: hapus file lama → Upload file langsung</span></div>
+            <div class="dl-step"><span class="n">4</span><span>Selesai! Tim buka link aplikasi → langsung masuk ke dashboard</span></div>
           </div>
           <button class="btn-full" id="dl-btn" onclick="downloadFile()" style="background:var(--green);max-width:280px;margin:0 auto">⬇ Download index.html</button>
         </div>
@@ -1599,19 +1587,7 @@ function writeBackupSheet_(parsed) {
     </div>
   </div>
 
-  <!-- ── PIN SCREEN ── -->
-  <div class="screen" id="sc-pin" style="display:none">
-    <div class="screen-box pin-box">
-      <div class="logo-box" style="margin:0 auto 14px"><svg viewBox="0 0 90 90">
-          <path d="M88.3,25.4c-1-3.8-4-6.8-7.8-7.8C73.8,16,45,16,45,16S16.2,16,9.5,17.7c-3.8,1-6.8,4-7.8,7.8C0,32.1,0,46,0,46s0,13.9,1.7,20.6c1,3.8,4,6.8,7.8,7.8C16.2,76,45,76,45,76s28.8,0,35.5-1.7c3.8-1,6.8-4,7.8-7.8C90,59.9,90,46,90,46S90,32.1,88.3,25.4z M36,59V33l24,13L36,59z"></path>
-        </svg></div>
-      <div style="font-size:16px;font-weight:700;margin-bottom:4px">YT Scheduler</div>
-      <div style="font-size:13px;color:var(--t2);margin-bottom:20px">Masukkan password tim</div>
-      <input type="password" id="pin-input" placeholder="Password..." autocomplete="off" style="width:100%;height:44px;padding:0 14px;border:1px solid var(--border2);border-radius:var(--r2);background:var(--card);color:var(--text);font-size:15px;font-family:inherit;text-align:center;letter-spacing:2px" onkeydown="if(event.key==='Enter')checkPin()">
-      <div id="pin-err" style="font-size:12px;color:#DC2626;min-height:18px;margin-top:8px"></div>
-      <button class="btn-full" onclick="checkPin()" style="margin-top:4px">Masuk →</button>
-    </div>
-  </div>
+
 
   <!-- ── APP CONTAINER ── -->
   <div id="app" style="display:none">
@@ -1626,7 +1602,7 @@ function writeBackupSheet_(parsed) {
           <div style="font-size:11px;color:var(--t3)">Multi-Channel Video Planner</div>
         </div>
       </div>
-      <div class="hdr-r" id="hdr-r"><button class="btn btn-sm btn-ghost" onclick="A.modal='manage_cid';render()" title="Kelola Client ID">🔑 Kelola Client ID</button><button class="btn btn-sm btn-ghost" onclick="doLogout()" title="Keluar dari sesi PIN">🔒 Keluar PIN</button></div>
+      <div class="hdr-r" id="hdr-r"><button class="btn btn-sm btn-ghost" onclick="A.modal='manage_cid';render()" title="Kelola Client ID">🔑 Kelola Client ID</button></div>
     </div>
     <div id="root"><div style="text-align:center;padding:3rem 1rem;display:flex;flex-direction:column;align-items:center"><div style="font-size:32px;margin-bottom:8px">📺</div><h2 style="font-size:18px;font-weight:800;margin-bottom:6px">Pilih Channel &amp; Client ID</h2><p style="font-size:13px;color:var(--t2);margin-bottom:1rem">Pilih Client ID yang aktif dan channel yang ingin kamu kelola jadwalnya.</p><div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--r2);padding:12px;margin-bottom:1.5rem;width:100%;max-width:440px;text-align:left;color:#DC2626;font-size:12px">⚠ Belum ada Client ID dikonfigurasi. Klik tombol <b>🔑 Kelola Client ID</b> di kanan atas untuk menambahkan Client ID terlebih dahulu.</div><div style="display:flex;flex-direction:column;gap:10px;align-items:center;width:100%;max-width:320px"><button class="btn btn-red" style="font-size:14px;padding:12px 28px;width:100%;max-width:320px;justify-content:center" onclick="switchCh(window._chm['1784297688561'])"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#FF0000;margin-right:8px;flex-shrink:0"></span>Masuk sebagai <b style="margin-left:4px">s</b></button><div style="margin-top:4px;border-top:1px solid var(--border);padding-top:12px;width:100%;max-width:320px"><button class="btn" style="width:100%;max-width:320px;justify-content:center;font-size:13px;border-style:dashed" onclick="A.modal='addch';render()">＋ Tambah Channel</button></div></div></div></div>
   </div>
@@ -1690,7 +1666,8 @@ function writeBackupSheet_(parsed) {
       saveToSheets();
     }
 
-    // ── GOOGLE APPS SCRIPT STORAGE & SETUP/PIN LOGIC ──
+    // ── GOOGLE APPS SCRIPT STORAGE & SETUP LOGIC ──
+    // =========================================================================
     var _saving = false, _pendingSave = false;
     async function loadFromSheets() {
       if (_saving || _pendingSave) return;
@@ -1725,26 +1702,21 @@ function writeBackupSheet_(parsed) {
 
     var generatedHtml = "";
     function init() {
-      if (SHEETS_URL && TEAM_PIN) {
-        if (sessionStorage.getItem("ytsched-sess") === "ok") { showApp(); return; }
-        showScreen("pin");
+      if (SHEETS_URL) {
+        showApp();
       } else {
         showScreen("setup");
       }
     }
     function showScreen(s) {
-      var scSetup = $("sc-setup"), scPin = $("sc-pin"), appEl = $("app");
+      var scSetup = $("sc-setup"), appEl = $("app");
       if (scSetup) scSetup.style.display = s === "setup" ? "flex" : "none";
-      if (scPin) scPin.style.display = s === "pin" ? "flex" : "none";
       if (appEl) appEl.style.display = "none";
-      if (s === "pin") setTimeout(function () { var el = $("pin-input"); if (el) { el.value = ""; el.focus(); } }, 100);
     }
     function showApp() {
-      var scSetup = $("sc-setup"), scPin = $("sc-pin"), appEl = $("app");
+      var scSetup = $("sc-setup"), appEl = $("app");
       if (scSetup) scSetup.style.display = "none";
-      if (scPin) scPin.style.display = "none";
       if (appEl) appEl.style.display = "block";
-      sessionStorage.setItem("ytsched-sess", "ok");
       loadFromSheets();
     }
     function copyCode() {
@@ -1755,9 +1727,7 @@ function writeBackupSheet_(parsed) {
     }
     async function doSetup() {
       var url = val("s-url").trim();
-      var pin = val("s-pin").trim();
       if (!url || !url.includes("script.google.com")) { showSErr("URL tidak valid. Harus dari script.google.com"); return; }
-      if (!pin) { showSErr("Password tidak boleh kosong."); return; }
       var btn = $("s-btn");
       if (btn) { btn.disabled = true; btn.textContent = "Mengecek koneksi..."; }
       try {
@@ -1765,9 +1735,7 @@ function writeBackupSheet_(parsed) {
         var d = await r.json();
         if (d.error) throw new Error(d.error);
         var src = document.documentElement.outerHTML;
-        generatedHtml = src
-          .replace('const SHEETS_URL = "";', 'const SHEETS_URL = "' + url + '";')
-          .replace('const TEAM_PIN   = "";', 'const TEAM_PIN   = "' + pin + '";');
+        generatedHtml = src.replace('const SHEETS_URL = "";', 'const SHEETS_URL = "' + url + '";');
         var stepView = $("setup-step-view"), dlView = $("setup-dl-view");
         if (stepView) stepView.style.display = "none";
         if (dlView) dlView.style.display = "block";
@@ -1784,22 +1752,7 @@ function writeBackupSheet_(parsed) {
       a.download = "index.html";
       a.click();
     }
-    function checkPin() {
-      var valPin = val("pin-input");
-      if (valPin === TEAM_PIN) {
-        if ($("pin-input")) $("pin-input").value = "";
-        if ($("pin-err")) $("pin-err").textContent = "";
-        showApp();
-      } else {
-        if ($("pin-err")) $("pin-err").textContent = "Password salah, coba lagi.";
-        if ($("pin-input")) { $("pin-input").value = ""; $("pin-input").focus(); }
-      }
-    }
-    function doLogout() {
-      sessionStorage.removeItem("ytsched-sess");
-      showScreen("pin");
-      setTimeout(function () { var el = $("pin-input"); if (el) { el.value = ""; el.focus(); } }, 100);
-    }
+
     function saveSched() { if (!A.active) return; localStorage.setItem('yt_sc_' + A.active.id, JSON.stringify(A.scheduled)) }
     function saveHidden() { if (!A.active) return; localStorage.setItem('yt_hid_' + A.active.id, JSON.stringify(A.hidden)) }
     function loadHidden(ch) { try { return JSON.parse(localStorage.getItem('yt_hid_' + ch.id) || '{}') } catch (e) { return {} } }
@@ -2121,7 +2074,7 @@ function writeBackupSheet_(parsed) {
       if (A.active) signIn(A.active, A.cidIdx);
     }
 
-    async function fetchVideos() {
+    async function fetchVideos(forceAll) {
       try {
         // ── Draft window cut-off ───────────────────────────────────
         // Only fetch videos published/uploaded within draftWindowDays.
@@ -2129,7 +2082,8 @@ function writeBackupSheet_(parsed) {
         // soon as we hit a video older than the window — no need to
         // page through the entire channel history.
         var windowDays = (typeof DRAFT_WINDOW_DAYS !== 'undefined' ? DRAFT_WINDOW_DAYS : 90);
-        var cutoff = new Date(Date.now() - windowDays * 86400000); // ms
+        var cutoff = forceAll ? new Date(0) : new Date(Date.now() - windowDays * 86400000); // ms
+        A.fetchedAll = forceAll;
 
         // ── Langkah 1: Ambil video terbaru, berhenti saat melewati window ──
         var allSearchItems = [];
@@ -2199,26 +2153,44 @@ function writeBackupSheet_(parsed) {
         A.step = 'pick_channel'; render();
       }
     }
-    async function apiSet(videoId, publishAt, metadata, categoryId) {
-      // STEP 1: Always set the schedule using status-only request (exactly like the old working code).
-      // Sending snippet+status together causes YouTube to run full snippet validation,
-      // which can incorrectly reject the publishAt even when the timestamp is valid.
-      console.log('[apiSet] publishAt sent:', publishAt);
-      var statusBody = { id: videoId, status: { privacyStatus: 'private', publishAt: publishAt } };
-      var r1 = await fetch('https://www.googleapis.com/youtube/v3/videos?part=status', {
-        method: 'PUT', headers: { Authorization: 'Bearer ' + A.token, 'Content-Type': 'application/json' },
-        body: JSON.stringify(statusBody)
+    async function apiSetThumbnail(videoId, file) {
+      var r = await fetch('https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=' + videoId, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + A.token,
+          'Content-Type': file.type
+        },
+        body: file
       });
-      var d1 = await r1.json();
-      if (d1.error) {
-        console.error('YouTube API Error (status):', d1.error);
-        if (d1.error.code === 403 || (d1.error.message && d1.error.message.toLowerCase().includes('quota'))) {
+      var d = await r.json();
+      if (d.error) {
+        if (d.error.code === 403 || (d.error.message && d.error.message.toLowerCase().includes('quota'))) {
           throw new Error('403_QUOTA');
         }
-        if (d1.error.errors && d1.error.errors[0] && d1.error.errors[0].reason === 'invalidPublishAt') {
-          throw new Error('invalidPublishAt: Timestamp yang dikirim: ' + publishAt + '\n\nKemungkinan penyebab:\n1. Video berstatus Publik (tidak bisa dijadwal ulang).\n2. Video sudah memiliki jadwal yang sama.\n3. Jam komputer tidak sinkron dengan internet.');
+        throw new Error(JSON.stringify(d.error, null, 2));
+      }
+    }
+
+    async function apiSet(videoId, publishAt, metadata, categoryId) {
+      // STEP 1: Set the schedule using status-only request (if publishAt is provided).
+      if (publishAt !== null) {
+        console.log('[apiSet] publishAt sent:', publishAt);
+        var statusBody = { id: videoId, status: { privacyStatus: 'private', publishAt: publishAt } };
+        var r1 = await fetch('https://www.googleapis.com/youtube/v3/videos?part=status', {
+          method: 'PUT', headers: { Authorization: 'Bearer ' + A.token, 'Content-Type': 'application/json' },
+          body: JSON.stringify(statusBody)
+        });
+        var d1 = await r1.json();
+        if (d1.error) {
+          console.error('YouTube API Error (status):', d1.error);
+          if (d1.error.code === 403 || (d1.error.message && d1.error.message.toLowerCase().includes('quota'))) {
+            throw new Error('403_QUOTA');
+          }
+          if (d1.error.errors && d1.error.errors[0] && d1.error.errors[0].reason === 'invalidPublishAt') {
+            throw new Error('invalidPublishAt: Timestamp yang dikirim: ' + publishAt + '\n\nKemungkinan penyebab:\n1. Video berstatus Publik (tidak bisa dijadwal ulang).\n2. Video sudah memiliki jadwal yang sama.\n3. Jam komputer tidak sinkron dengan internet.');
+          }
+          throw new Error(JSON.stringify(d1.error, null, 2));
         }
-        throw new Error(JSON.stringify(d1.error, null, 2));
       }
 
       // STEP 2: If metadata provided, update snippet in a separate request.
@@ -2276,6 +2248,12 @@ function writeBackupSheet_(parsed) {
     function getBulkPreview() {
       var b = A.bulk, sel = b.selected, time = val('b-time') || b.time;
       var result = [];
+      if (b.subTab === 'pub') {
+        for (var i = 0; i < sel.length; i++) {
+          result.push({ id: sel[i], publishAt: null });
+        }
+        return result;
+      }
       if (b.mode === 'interval') {
         var start = val('b-start') || b.startDate;
         if (!start || !sel.length) return [];
@@ -2299,7 +2277,7 @@ function writeBackupSheet_(parsed) {
        the Client ID, and pick the same loop back up with the new token — instead
        of dropping the rest of the batch on the user via alert()+break. */
 
-    async function runBulkQueue(items, startOk, startFail, titleLines, descText, tagsArr, offset) {
+    async function runBulkQueue(items, startOk, startFail, titleLines, descText, tagsArr, offset, thumbFiles) {
       offset = offset || 0;
       var btn = $('bulk-apply');
       var ok = startOk, fail = startFail;
@@ -2323,8 +2301,15 @@ function writeBackupSheet_(parsed) {
         var origCatId = (vObj.snippet && vObj.snippet.categoryId) ? vObj.snippet.categoryId : '22';
 
         try {
-          await apiSet(vid, pub, hasMeta ? metadata : null, origCatId);
-          A.scheduled[vid] = pub;
+          if (thumbFiles && thumbFiles[i]) {
+            await apiSetThumbnail(vid, thumbFiles[i]);
+          }
+          if (pub !== null || hasMeta) {
+            await apiSet(vid, pub, hasMeta ? metadata : null, origCatId);
+          }
+          if (pub !== null) {
+            A.scheduled[vid] = pub;
+          }
           ok++;
           if (btn) btn.textContent = 'Menyimpan ' + ok + '/' + total + '...';
           var sIdx = A.bulk.selected.indexOf(vid);
@@ -2337,7 +2322,7 @@ function writeBackupSheet_(parsed) {
             A.pendingTask = {
               type: 'bulk',
               remaining: items.slice(localI), // includes the item that just failed, so it gets retried
-              titleLines: titleLines, descText: descText, tagsArr: tagsArr,
+              titleLines: titleLines, descText: descText, tagsArr: tagsArr, thumbFiles: thumbFiles,
               ok: ok, fail: fail, startIndex: i
             };
             toast('Quota API habis. Mengganti Client ID otomatis & melanjutkan...', 'inf');
@@ -2432,7 +2417,7 @@ function writeBackupSheet_(parsed) {
       var task = A.pendingTask;
       A.pendingTask = null; // clear immediately so this can't double-fire
       if (task.type === 'bulk') {
-        await runBulkQueue(task.remaining, task.ok, task.fail, task.titleLines, task.descText, task.tagsArr, task.startIndex);
+        await runBulkQueue(task.remaining, task.ok, task.fail, task.titleLines, task.descText, task.tagsArr, task.startIndex, task.thumbFiles);
       } else if (task.type === 'cal') {
         await runCalQueue(task.remaining, task.ok, task.fail, task.hasMeta, task.titleLines, task.descText, task.tagsArr, task.startIndex);
       }
@@ -2460,9 +2445,12 @@ function writeBackupSheet_(parsed) {
       var titleLines = (A.bulk.titles || '').split('\n').map(function (x) { return x.replace(/^\s*\d+[\.\-\)]\s*/, '').trim() }).filter(Boolean);
       var descText = A.bulk.desc || '';
       var tagsArr = (A.bulk.tags || '').split(',').map(function (x) { return x.trim() }).filter(Boolean);
+      
+      var thumbInput = $('b-thumbs');
+      var thumbFiles = thumbInput && thumbInput.files ? Array.from(thumbInput.files) : [];
 
       // Delegate to the resumable queue runner (see helpers above).
-      await runBulkQueue(preview, 0, 0, titleLines, descText, tagsArr, 0);
+      await runBulkQueue(preview, 0, 0, titleLines, descText, tagsArr, 0, thumbFiles);
     }
 
     /* ─ Unified staging & execution for both Bulk and Calendar saves ─ */
@@ -2598,7 +2586,8 @@ function writeBackupSheet_(parsed) {
     function hideVideo(id) { A.hidden[id] = true; saveHidden(); render(); }
     function unhideVideo(id) { delete A.hidden[id]; saveHidden(); render(); }
     function signOut() { A.token = ''; A.videos = []; A.scheduled = {}; A.hidden = {}; A.step = 'setup'; A.active = null; A.ytChannels = []; A.ytSelectedChannel = null; render(); toast('Signed out', 'inf'); }
-    async function refresh() { A.step = 'loading'; render(); await fetchVideos(); }
+    async function refresh() { A.step = 'loading'; render(); await fetchVideos(false); }
+    async function refreshAll() { A.step = 'loading'; render(); await fetchVideos(true); }
     function switchCh(ch) { A.token = ''; A.videos = []; A.scheduled = {}; A.step = 'setup'; A.active = null; render(); setTimeout(function () { signIn(ch) }, 100); }
     function addChannel() {
       var name = val('nc-name').trim() || 'Channel Baru';
@@ -2617,13 +2606,26 @@ function writeBackupSheet_(parsed) {
       //   2. Must have been uploaded within draftWindowDays (default 90 days).
       //      This prevents years-old private/archived videos from polluting the list.
       var windowDays = (typeof DRAFT_WINDOW_DAYS !== 'undefined' ? DRAFT_WINDOW_DAYS : 90);
-      var cutoff = new Date(Date.now() - windowDays * 86400000);
+      var cutoff = A.fetchedAll ? new Date(0) : new Date(Date.now() - windowDays * 86400000);
       return A.videos.filter(function (v) {
         var s = v.status || {};
         if (A.hidden[v.id]) return false;
         // Only private videos qualify as drafts
         if (s.privacyStatus !== 'private') return false;
         // Must be within the draft window
+        var pub = v.snippet && v.snippet.publishedAt;
+        if (pub && new Date(pub) < cutoff) return false;
+        return true;
+      });
+    }
+
+    function getPublished() {
+      var windowDays = (typeof DRAFT_WINDOW_DAYS !== 'undefined' ? DRAFT_WINDOW_DAYS : 90);
+      var cutoff = A.fetchedAll ? new Date(0) : new Date(Date.now() - windowDays * 86400000);
+      return A.videos.filter(function (v) {
+        var s = v.status || {};
+        if (A.hidden[v.id]) return false;
+        if (s.privacyStatus !== 'public') return false;
         var pub = v.snippet && v.snippet.publishedAt;
         if (pub && new Date(pub) < cutoff) return false;
         return true;
@@ -2698,7 +2700,6 @@ function writeBackupSheet_(parsed) {
     function renderHeader() {
       var r = $('hdr-r'); if (!r) return;
       var cidManageBtn = '<button class="btn btn-sm btn-ghost" onclick="A.modal=\'manage_cid\';render()" title="Kelola Client ID">🔑 Kelola Client ID</button>';
-      var logoutBtn = '<button class="btn btn-sm btn-ghost" onclick="doLogout()" title="Keluar dari sesi PIN">🔒 Keluar PIN</button>';
       if (A.step === 'dashboard') {
         var ids = getClientIds();
         var cidInfo = ids.length > 0 ? '<span style="font-size:10px;color:var(--t3);padding:2px 6px;border:1px solid var(--border);border-radius:4px">CID #' + (A.cidIdx + 1) + '/' + ids.length + '</span>' : '';
@@ -2706,12 +2707,12 @@ function writeBackupSheet_(parsed) {
         r.innerHTML =
           '<span style="font-size:12px;color:var(--t3)"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;vertical-align:middle"></span>' + esc(A.active ? A.active.name : '') + '</span>' +
           tokenRemainingLabel() + ' ' + cidInfo + rotBtn +
-          '<button class="btn btn-sm btn-ghost" onclick="refresh()">↻</button>' +
+          '<button class="btn btn-sm btn-ghost" onclick="refresh()" title="Reload 90 hari terakhir">↻</button>' +
+          '<button class="btn btn-sm btn-ghost" onclick="refreshAll()" title="Reload semua video">↻ Semua</button>' +
           cidManageBtn +
-          '<button class="btn btn-sm btn-ghost" onclick="signOut()">Sign Out</button>' +
-          logoutBtn;
+          '<button class="btn btn-sm btn-ghost" onclick="signOut()">Sign Out</button>';
       } else {
-        r.innerHTML = cidManageBtn + logoutBtn;
+        r.innerHTML = cidManageBtn;
       }
     }
 
@@ -2871,9 +2872,12 @@ function writeBackupSheet_(parsed) {
       var allDrafts = getDrafts();
       var unscheduled = allDrafts.filter(function (v) { return !A.scheduled[v.id] });
       var scheduled = allDrafts.filter(function (v) { return !!A.scheduled[v.id] });
+      var published = getPublished();
 
       // Sort scheduled by date ascending
       scheduled.sort(function (a, b) { return new Date(A.scheduled[a.id]) - new Date(A.scheduled[b.id]) });
+      // Sort published by date descending
+      published.sort(function (a, b) { return new Date(b.snippet.publishedAt) - new Date(a.snippet.publishedAt) });
 
       // Sub-tab bar
       var h = '<div style="display:flex;gap:0;margin-bottom:1.25rem;border-bottom:1px solid var(--border)">';
@@ -2881,12 +2885,16 @@ function writeBackupSheet_(parsed) {
         '📋 Belum Dijadwalkan <span style="background:var(--orange-bg);color:var(--orange);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">' + unscheduled.length + '</span></button>';
       h += '<button class="tab' + (b.subTab === 'sched' ? ' active' : '') + '" onclick="A.bulk.subTab=\'sched\';render()">' +
         '✅ Sudah Terjadwal <span style="background:var(--green-bg);color:var(--green);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">' + scheduled.length + '</span></button>';
+      h += '<button class="tab' + (b.subTab === 'pub' ? ' active' : '') + '" onclick="A.bulk.subTab=\'pub\';render()">' +
+        '🌐 Sudah Publish <span style="background:var(--blue-bg);color:var(--blue);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">' + published.length + '</span></button>';
       h += '</div>';
 
       if (b.subTab === 'sched') {
         h += renderBulkScheduled(scheduled);
+      } else if (b.subTab === 'pub') {
+        h += renderBulkUnsched(published, b, true);
       } else {
-        h += renderBulkUnsched(unscheduled, b);
+        h += renderBulkUnsched(unscheduled, b, false);
       }
       return h;
     }
@@ -2935,39 +2943,55 @@ function writeBackupSheet_(parsed) {
       return h;
     }
 
-    function renderBulkUnsched(unscheduled, b) {
+    function renderBulkUnsched(unscheduled, b, isPublishedMode) {
       var selCount = b.selected.length;
       var h = '<div class="bulk-wrap">';
 
       // LEFT: settings
       var left = '<div class="panel">';
-      left += '<div class="panel-head">⚙️ Pengaturan Jadwal Massal</div>';
+      left += '<div class="panel-head">⚙️ ' + (isPublishedMode ? 'Pengaturan Update Massal' : 'Pengaturan Jadwal Massal') + '</div>';
       left += '<div class="panel-body">';
-      left += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:8px">Mode Penjadwalan</div>';
-      left += '<div class="mode-opts">';
-      left += '<label class="mode-opt' + (b.mode === 'interval' ? ' selected' : '') + '"><input type="radio" name="bmode" value="interval" onchange="setMode(\'interval\')" ' + (b.mode === 'interval' ? 'checked' : '') + '>' +
-        '<div class="mode-opt-text"><strong>📅 Interval Otomatis</strong><span>1 video per N hari dari tanggal mulai</span></div></label>';
-      left += '<label class="mode-opt' + (b.mode === 'custom' ? ' selected' : '') + '"><input type="radio" name="bmode" value="custom" onchange="setMode(\'custom\')" ' + (b.mode === 'custom' ? 'checked' : '') + '>' +
-        '<div class="mode-opt-text"><strong>🗓 Pilih Tanggal Sendiri</strong><span>Tentukan tanggal berbeda untuk tiap video</span></div></label>';
-      left += '</div>';
-      if (b.mode === 'interval') {
-        left += '<div class="fg"><label>Tanggal Mulai</label><input type="date" id="b-start" min="' + today() + '" value="' + esc(b.startDate || tomorrow()) + '" oninput="A.bulk.startDate=this.value;persistDraftState();render()"></div>';
-        left += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:7px">Interval</div>';
-        left += '<div class="interval-row">';
-        [1, 2, 3, 7].forEach(function (n) {
-          left += '<button class="interval-btn' + (b.interval === n ? ' sel' : '') + '" onclick="setInterval2(' + n + ')">' + (n === 1 ? 'Tiap Hari' : n === 7 ? 'Tiap Minggu' : n + ' Hari Sekali') + '</button>';
-        });
-        left += '<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2)">Custom:<input class="custom-n" type="number" min="1" max="365" value="' + b.customN + '" oninput="A.bulk.customN=parseInt(this.value)||1;persistDraftState();" id="b-custn">' +
-          '<button class="btn btn-xs" onclick="setInterval2(parseInt(val(\'b-custn\'))||1)">OK</button></div>';
+      
+      if (!isPublishedMode) {
+        left += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:8px">Mode Penjadwalan</div>';
+        left += '<div class="mode-opts">';
+        left += '<label class="mode-opt' + (b.mode === 'interval' ? ' selected' : '') + '"><input type="radio" name="bmode" value="interval" onchange="setMode(\'interval\')" ' + (b.mode === 'interval' ? 'checked' : '') + '>' +
+          '<div class="mode-opt-text"><strong>📅 Interval Otomatis</strong><span>1 video per N hari dari tanggal mulai</span></div></label>';
+        left += '<label class="mode-opt' + (b.mode === 'custom' ? ' selected' : '') + '"><input type="radio" name="bmode" value="custom" onchange="setMode(\'custom\')" ' + (b.mode === 'custom' ? 'checked' : '') + '>' +
+          '<div class="mode-opt-text"><strong>🗓 Pilih Tanggal Sendiri</strong><span>Tentukan tanggal berbeda untuk tiap video</span></div></label>';
         left += '</div>';
+        if (b.mode === 'interval') {
+          left += '<div class="fg"><label>Tanggal Mulai</label><input type="date" id="b-start" min="' + today() + '" value="' + esc(b.startDate || tomorrow()) + '" oninput="A.bulk.startDate=this.value;persistDraftState();render()"></div>';
+          left += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:7px">Interval</div>';
+          left += '<div class="interval-row">';
+          [1, 2, 3, 7].forEach(function (n) {
+            left += '<button class="interval-btn' + (b.interval === n ? ' sel' : '') + '" onclick="setInterval2(' + n + ')">' + (n === 1 ? 'Tiap Hari' : n === 7 ? 'Tiap Minggu' : n + ' Hari Sekali') + '</button>';
+          });
+          left += '<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2)">Custom:<input class="custom-n" type="number" min="1" max="365" value="' + b.customN + '" oninput="A.bulk.customN=parseInt(this.value)||1;persistDraftState();" id="b-custn">' +
+            '<button class="btn btn-xs" onclick="setInterval2(parseInt(val(\'b-custn\'))||1)">OK</button></div>';
+          left += '</div>';
+        }
+        left += '<div class="fg" style="margin-top:12px"><label>Jam Publish — ' + tzLabel() + ' (waktu lokal)</label><input type="time" id="b-time" value="' + esc(b.time) + '" oninput="A.bulk.time=this.value;persistDraftState();"></div>';
+        left += '<div style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--border2)">';
       }
-      left += '<div class="fg" style="margin-top:12px"><label>Jam Publish — ' + tzLabel() + ' (waktu lokal)</label><input type="time" id="b-time" value="' + esc(b.time) + '" oninput="A.bulk.time=this.value;persistDraftState();"></div>';
-      left += '<div style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--border2)">';
+
       left += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:8px">📝 Update Metadata Massal (Opsional)</div>';
       left += '<div class="fg"><label>Judul (1 Baris = 1 Video)</label><textarea id="b-titles" rows="4" placeholder="Judul Video 1\\nJudul Video 2" style="width:100%;padding:8px;font-size:13px;border:1px solid var(--border2);border-radius:var(--r2);background:var(--card);color:var(--text)" oninput="A.bulk.titles=this.value;persistDraftState();updateCharCounter(\'b-titles-cnt\',this.value,100,true);">' + esc(b.titles || '') + '</textarea>' + getCounterHtml('b-titles-cnt', b.titles, 100, true) + '</div>';
       left += '<div class="fg"><label>Deskripsi (Untuk Semua Video)</label><textarea id="b-desc" rows="3" style="width:100%;padding:8px;font-size:13px;border:1px solid var(--border2);border-radius:var(--r2);background:var(--card);color:var(--text)" oninput="A.bulk.desc=this.value;persistDraftState();updateCharCounter(\'b-desc-cnt\',this.value,5000,false);">' + esc(b.desc || '') + '</textarea>' + getCounterHtml('b-desc-cnt', b.desc, 5000, false) + '</div>';
       left += '<div class="fg"><label>Tags (Pisahkan koma)</label><input type="text" id="b-tags" placeholder="tag1, tag 2" style="width:100%;padding:8px;font-size:13px;border:1px solid var(--border2);border-radius:var(--r2);background:var(--card);color:var(--text)" value="' + esc(b.tags || '') + '" oninput="A.bulk.tags=this.value;persistDraftState();updateCharCounter(\'b-tags-cnt\',this.value,500,false);">' + getCounterHtml('b-tags-cnt', b.tags, 500, false) + '</div>';
+      
+      left += '<div style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--border2)">';
+      left += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:8px">🖼️ Update Thumbnail Massal (Opsional)</div>';
+      left += '<div class="fg">';
+      left += '<label>Pilih Gambar Thumbnail (Bisa Pilih Banyak)</label>';
+      left += '<input type="file" id="b-thumbs" multiple accept="image/png, image/jpeg" style="width:100%;padding:8px;font-size:13px;border:1px solid var(--border2);border-radius:var(--r2);background:var(--card);color:var(--text); cursor:pointer">';
+      left += '<div style="font-size:10px;color:var(--t3);margin-top:4px">⚠️ Peringatan: Memperbarui thumbnail menghabiskan banyak Kuota API (50 kuota per video). Gambar akan diurutkan sesuai urutan video.</div>';
       left += '</div>';
+      left += '</div>';
+
+      if (!isPublishedMode) {
+        left += '</div>';
+      }
       left += '</div></div>';
 
       // RIGHT: video selection + preview
@@ -2976,15 +3000,17 @@ function writeBackupSheet_(parsed) {
       var allMatchingSel = matchingUnsched.length > 0 && matchingUnsched.every(function (v) { return b.selected.indexOf(v.id) > -1 });
       var right = '<div>';
       right += '<div class="panel" style="margin-bottom:12px">';
-      right += '<div class="panel-head">📋 Pilih Video yang Akan Dijadwalkan ' +
+      right += '<div class="panel-head">📋 ' + (isPublishedMode ? 'Pilih Video' : 'Pilih Video yang Akan Dijadwalkan') + ' ' +
         '<button class="btn btn-xs btn-ghost" onclick="selectAllBulk()">' + (allMatchingSel ? 'Batal Semua' : 'Pilih Semua') + '</button></div>';
       right += '<div class="panel-body" style="padding:10px">';
 
       if (!unscheduled.length) {
-        right += '<div class="empty" style="padding:1.5rem"><p style="font-size:13px">Semua draft sudah terjadwal! 🎉</p>' +
-          '<p style="font-size:12px;color:var(--t3);margin-top:6px">Lihat tab <b>Sudah Terjadwal</b> untuk kelola jadwal yang ada.</p></div>';
+        right += '<div class="empty" style="padding:1.5rem"><p style="font-size:13px">' + (isPublishedMode ? 'Tidak ada video yang ditemukan.' : 'Semua draft sudah terjadwal! 🎉') + '</p>' +
+          (isPublishedMode ? '' : '<p style="font-size:12px;color:var(--t3);margin-top:6px">Lihat tab <b>Sudah Terjadwal</b> untuk kelola jadwal yang ada.</p>') + '</div>';
       } else {
-        right += '<div class="info-blue" style="font-size:11px;margin-bottom:8px">💡 Hanya video <b>belum dijadwalkan</b> yang tampil di sini. Urutan = urutan tanggal publish. Atur dengan ↑↓.</div>';
+        if (!isPublishedMode) {
+          right += '<div class="info-blue" style="font-size:11px;margin-bottom:8px">💡 Hanya video <b>belum dijadwalkan</b> yang tampil di sini. Urutan = urutan tanggal publish. Atur dengan ↑↓.</div>';
+        }
         right += renderSearchBar();
         right += '<div class="sel-list">';
         var selSet = new Set(b.selected);
@@ -3023,10 +3049,17 @@ function writeBackupSheet_(parsed) {
 
       // Preview panel
       right += '<div class="panel">';
-      right += '<div class="panel-head">👁 Preview Jadwal <span style="font-size:11px;color:var(--t3);font-weight:500">' + selCount + ' video dipilih</span></div>';
+      right += '<div class="panel-head">👁 Preview Update <span style="font-size:11px;color:var(--t3);font-weight:500">' + selCount + ' video dipilih</span></div>';
       right += '<div class="panel-body">';
       if (!selCount) {
         right += '<div class="empty" style="padding:1.5rem"><p style="font-size:13px">Pilih video di atas untuk melihat preview.</p></div>';
+      } else if (isPublishedMode) {
+        right += '<div style="overflow-x:auto"><table class="ptable"><thead><tr><th class="pnum">#</th><th>Video</th></tr></thead><tbody>';
+        b.selected.forEach(function (id, i) {
+          var v = A.videos.find(function (x) { return x.id === id }); if (!v) return;
+          right += '<tr><td class="pnum">' + (i + 1) + '</td><td class="ptitle">' + esc(getTitle(v)) + '</td></tr>';
+        });
+        right += '</tbody></table></div>';
       } else if (b.mode === 'interval') {
         var startVal = b.startDate || tomorrow();
         right += '<div style="overflow-x:auto"><table class="ptable"><thead><tr><th class="pnum">#</th><th>Video</th><th>Tanggal Publish</th></tr></thead><tbody>';
