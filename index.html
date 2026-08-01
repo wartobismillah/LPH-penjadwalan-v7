@@ -2322,40 +2322,42 @@ function writeBackupSheet_(parsed) {
 
         try {
           var thumbErrStr = '';
+          var actionSuccess = false;
           if (thumbFiles && thumbFiles.length > 0) {
-            var thumbSuccess = false;
-            while (thumbFiles.length > 0 && !thumbSuccess) {
-              var currentThumb = thumbFiles[0];
-              try {
-                await apiSetThumbnail(vid, currentThumb);
-                thumbSuccess = true;
-                thumbFiles.shift(); // consume it
-              } catch (err) {
-                if (err.message === '403_QUOTA' || (err.message && err.message.toLowerCase().includes('quota'))) throw err;
-                var isInvalid = err.message.includes('invalidImage') || err.message.includes('400');
-                if (isInvalid) {
-                  console.warn('Thumbnail err for ' + vid + ':', err.message, '-> Discarding image & trying next');
-                  thumbFiles.shift(); // discard this invalid image, loop will try the next one
-                } else {
-                  console.warn('Thumbnail upload failed (non-invalid) for ' + vid + ':', err.message);
-                  thumbSuccess = true; // stop trying for this video
-                  thumbErrStr = ' (Gagal upload thumbnail)';
-                  thumbFiles.shift(); // discard to not get stuck
-                }
+            var currentThumb = thumbFiles.shift(); // Ambil tepat 1 gambar untuk 1 video ini
+            try {
+              await apiSetThumbnail(vid, currentThumb);
+              actionSuccess = true;
+            } catch (err) {
+              if (err.message === '403_QUOTA' || (err.message && err.message.toLowerCase().includes('quota'))) {
+                // Jika error Quota, kembalikan gambar ke antrean agar bisa di-retry setelah rotasi Client ID
+                thumbFiles.unshift(currentThumb);
+                throw err;
               }
+              // Jika error lain (misal 400 Limit YouTube Harian, atau invalid image)
+              console.warn('Thumbnail err for ' + vid + ':', err.message);
+              thumbErrStr = ' (Gagal upload thumbnail)';
             }
           }
           if (pub !== null || hasMeta) {
             await apiSet(vid, pub, hasMeta ? metadata : null, origCatId);
+            actionSuccess = true;
           }
-          if (pub !== null) {
-            A.scheduled[vid] = pub;
+          
+          if (actionSuccess) {
+            if (pub !== null) {
+              A.scheduled[vid] = pub;
+            }
+            ok++;
+            if (btn) btn.textContent = 'Menyimpan ' + ok + '/' + total + '...';
+            var sIdx = A.bulk.selected.indexOf(vid);
+            if (sIdx > -1) A.bulk.selected.splice(sIdx, 1);
+            if (thumbErrStr) toast('Video tersimpan' + thumbErrStr, 'wrn');
+          } else {
+            fail++;
+            console.warn('Video ' + vid + ' dilewati/gagal: Tidak ada aksi (thumbnail/metadata) yang berhasil dilakukan.');
+            if (btn) btn.textContent = 'Menyimpan ' + ok + '/' + total + '...';
           }
-          ok++;
-          if (btn) btn.textContent = 'Menyimpan ' + ok + '/' + total + '...';
-          var sIdx = A.bulk.selected.indexOf(vid);
-          if (sIdx > -1) A.bulk.selected.splice(sIdx, 1);
-          if (thumbErrStr) toast('Video tersimpan' + thumbErrStr, 'wrn');
         } catch (e) {
           if (e.message === '403_QUOTA' || (e.message && e.message.toLowerCase().includes('quota'))) {
             // PAUSE: persist progress made so far, stash the remaining queue,
