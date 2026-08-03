@@ -1,7 +1,4 @@
-<!DOCTYPE html>
-<html lang="id">
-
-<!--
+<html lang="id"><!--
 ════════════════════════════════════════════════════════════════════════════════════════════
    📅 YOUTUBE MULTI-CHANNEL SCHEDULER (VERSI UPGRADE v4 / UPDATED)
 ════════════════════════════════════════════════════════════════════════════════════════════
@@ -34,10 +31,7 @@ Berikut adalah rincian 3 Bug Fix dan 3 Fitur Baru (serta 3 perbaikan logika tamb
    - [Perbaikan v2]: Tombol "Pilih Semua" dan "Batal Semua" di tab Bulk kini secara presisi HANYA memilih/membatalkan video yang sedang terfilter di layar.
 
 ════════════════════════════════════════════════════════════════════════════════════════════
--->
-
-
-<head>
+--><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YouTube Multi-Channel Scheduler</title>
@@ -48,7 +42,7 @@ Berikut adalah rincian 3 Bug Fix dan 3 Fitur Baru (serta 3 perbaikan logika tamb
   <script>
     // ═══════════════════════════════════════════════════════════
     // KONFIGURASI — diisi otomatis oleh sistem, jangan diedit manual
-    const SHEETS_URL = "";
+    const SHEETS_URL = "https://script.google.com/macros/s/AKfycbxim5HLcPx_YsfbEcNA0yZFM6AhJAAz2PhqKqP7W84YJyPlPE0FvH0uDNXDTvIezzw1HQ/exec";
     const DRAFT_WINDOW_DAYS = 90;
     // ═══════════════════════════════════════════════════════════
   </script>
@@ -1477,11 +1471,11 @@ Berikut adalah rincian 3 Bug Fix dan 3 Fitur Baru (serta 3 perbaikan logika tamb
 
 <body>
   <!-- ── SETUP SCREEN ── -->
-  <div class="screen" id="sc-setup" style="display:none">
+  <div class="screen" id="sc-setup" style="display: flex;">
     <div class="screen-box">
       <div class="s-logo">
         <div class="logo-box"><svg viewBox="0 0 90 90">
-            <path d="M88.3,25.4c-1-3.8-4-6.8-7.8-7.8C73.8,16,45,16,45,16S16.2,16,9.5,17.7c-3.8,1-6.8,4-7.8,7.8C0,32.1,0,46,0,46s0,13.9,1.7,20.6c1,3.8,4,6.8,7.8,7.8C16.2,76,45,76,45,76s28.8,0,35.5-1.7c3.8-1,6.8-4,7.8-7.8C90,59.9,90,46,90,46S90,32.1,88.3,25.4z M36,59V33l24,13L36,59z" />
+            <path d="M88.3,25.4c-1-3.8-4-6.8-7.8-7.8C73.8,16,45,16,45,16S16.2,16,9.5,17.7c-3.8,1-6.8,4-7.8,7.8C0,32.1,0,46,0,46s0,13.9,1.7,20.6c1,3.8,4,6.8,7.8,7.8C16.2,76,45,76,45,76s28.8,0,35.5-1.7c3.8-1,6.8-4,7.8-7.8C90,59.9,90,46,90,46S90,32.1,88.3,25.4z M36,59V33l24,13L36,59z"></path>
           </svg></div>
         <div><h1>YT Scheduler — Setup</h1><p>Cukup sekali, ~10 menit</p></div>
       </div>
@@ -1493,7 +1487,7 @@ Berikut adalah rincian 3 Bug Fix dan 3 Fitur Baru (serta 3 perbaikan logika tamb
           <div class="step"><span class="step-n">1</span><div class="step-body">Buka <a href="https://sheets.new" target="_blank"><strong>sheets.new</strong></a> → buat Google Sheet baru (nama bebas, biarkan kosong).</div></div>
           <div class="step"><span class="step-n">2</span><div class="step-body">Di Google Sheet → klik <strong>Extensions → Apps Script</strong> → hapus semua kode yang ada → paste kode ini:<div class="code-block" id="gas-code">// ═══════════════════════════════════════════════════
 // YT Scheduler — Apps Script Storage + Backup Sheets
-// Data utama disimpan sbg JSON di Google Drive (cepat & sinkron).
+// Data utama disimpan sbg JSON di Google Drive (cepat &amp; sinkron).
 // Setiap kali disimpan, otomatis JUGA ditulis ke tab Sheet "Backup Database".
 // ═══════════════════════════════════════════════════
 var FILE_NAME = "ytscheduler-data.json";
@@ -1557,13 +1551,13 @@ function writeBackupSheet_(parsed) {
     rows.push(["Channel", ch.name || "-", ch.color || "#FF0000"]);
   });
 
-  if (rows.length > 0) {
+  if (rows.length &gt; 0) {
     sheet.getRange(2, 1, rows.length, 3).setValues(rows);
   }
   sheet.autoResizeColumns(1, 3);
-}</div><button class="copy-btn" onclick="copyCode()">Copy</button>Klik 💾 <strong>Save</strong> → klik ▶ <strong>Run</strong> → pilih <em>doGet</em> → izinkan akses Google. Setelah ini, tab baru bernama <strong>"Backup Database"</strong> akan otomatis muncul & terisi tiap kali ada perubahan data.</div></div>
+}</div><button class="copy-btn" onclick="copyCode()">Copy</button>Klik 💾 <strong>Save</strong> → klik ▶ <strong>Run</strong> → pilih <em>doGet</em> → izinkan akses Google. Setelah ini, tab baru bernama <strong>"Backup Database"</strong> akan otomatis muncul &amp; terisi tiap kali ada perubahan data.</div></div>
           <div class="step"><span class="step-n">3</span><div class="step-body">Klik <strong>Deploy → New deployment</strong> → pilih type <strong>Web app</strong> → isi:<br><em>Execute as</em>: <strong>Me</strong> &nbsp;·&nbsp; <em>Who has access</em>: <strong>Anyone</strong> → Deploy → izinkan → copy <strong>Web app URL</strong>.</div></div>
-          <div class="step"><span class="step-n">4</span><div class="step-body">Paste URL di form bawah, lalu klik <strong>Cek & Generate File</strong>. Kamu akan download file <code>index.html</code> baru → upload ke GitHub atau hosting menggantikan file lama.</div></div>
+          <div class="step"><span class="step-n">4</span><div class="step-body">Paste URL di form bawah, lalu klik <strong>Cek &amp; Generate File</strong>. Kamu akan download file <code>index.html</code> baru → upload ke GitHub atau hosting menggantikan file lama.</div></div>
         </div>
         <div class="divider"></div>
         <div class="field">
@@ -1572,7 +1566,7 @@ function writeBackupSheet_(parsed) {
           <div class="help">Dari Deploy → Manage deployments → copy URL-nya</div>
         </div>
         <div id="s-err"></div>
-        <button class="btn-full" id="s-btn" onclick="doSetup()">Cek Koneksi & Generate File →</button>
+        <button class="btn-full" id="s-btn" onclick="doSetup()" disabled="">Mengecek koneksi...</button>
       </div>
 
       <!-- Download view (muncul setelah setup berhasil) -->
@@ -1601,17 +1595,16 @@ function writeBackupSheet_(parsed) {
     <div class="header">
       <div style="display:flex;align-items:center;gap:10px">
         <div class="logo-box"><svg viewBox="0 0 90 90">
-            <path
-              d="M88.3,25.4c-1-3.8-4-6.8-7.8-7.8C73.8,16,45,16,45,16S16.2,16,9.5,17.7c-3.8,1-6.8,4-7.8,7.8C0,32.1,0,46,0,46s0,13.9,1.7,20.6c1,3.8,4,6.8,7.8,7.8C16.2,76,45,76,45,76s28.8,0,35.5-1.7c3.8-1,6.8-4,7.8-7.8C90,59.9,90,46,90,46S90,32.1,88.3,25.4z M36,59V33l24,13L36,59z" />
+            <path d="M88.3,25.4c-1-3.8-4-6.8-7.8-7.8C73.8,16,45,16,45,16S16.2,16,9.5,17.7c-3.8,1-6.8,4-7.8,7.8C0,32.1,0,46,0,46s0,13.9,1.7,20.6c1,3.8,4,6.8,7.8,7.8C16.2,76,45,76,45,76s28.8,0,35.5-1.7c3.8-1,6.8-4,7.8-7.8C90,59.9,90,46,90,46S90,32.1,88.3,25.4z M36,59V33l24,13L36,59z"></path>
           </svg></div>
         <div>
           <div style="font-size:16px;font-weight:700">YT Scheduler</div>
           <div style="font-size:11px;color:var(--t3)">Multi-Channel Video Planner</div>
         </div>
       </div>
-      <div class="hdr-r" id="hdr-r"></div>
+      <div class="hdr-r" id="hdr-r"><button class="btn btn-sm btn-ghost" onclick="A.modal='manage_cid';render()" title="Kelola Client ID">🔑 Kelola Client ID</button></div>
     </div>
-    <div id="root"></div>
+    <div id="root"><div style="text-align:center;padding:3rem 1rem;display:flex;flex-direction:column;align-items:center"><div style="font-size:32px;margin-bottom:8px">📺</div><h2 style="font-size:18px;font-weight:800;margin-bottom:6px">Pilih Channel &amp; Client ID</h2><p style="font-size:13px;color:var(--t2);margin-bottom:1rem">Pilih Client ID yang aktif dan channel yang ingin kamu kelola jadwalnya.</p><div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--r2);padding:12px;margin-bottom:1.5rem;width:100%;max-width:440px;text-align:left;color:#DC2626;font-size:12px">⚠ Belum ada Client ID dikonfigurasi. Klik tombol <b>🔑 Kelola Client ID</b> di kanan atas untuk menambahkan Client ID terlebih dahulu.</div><div style="display:flex;flex-direction:column;gap:10px;align-items:center;width:100%;max-width:320px"><button class="btn btn-red" style="font-size:14px;padding:12px 28px;width:100%;max-width:320px;justify-content:center" onclick="switchCh(window._chm['1784297688561'])"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#FF0000;margin-right:8px;flex-shrink:0"></span>Masuk sebagai <b style="margin-left:4px">s</b></button><div style="margin-top:4px;border-top:1px solid var(--border);padding-top:12px;width:100%;max-width:320px"><button class="btn" style="width:100%;max-width:320px;justify-content:center;font-size:13px;border-style:dashed" onclick="A.modal='addch';render()">＋ Tambah Channel</button></div></div></div></div>
   </div>
   </div>
   <div id="toasts"></div>
@@ -3651,6 +3644,6 @@ function writeBackupSheet_(parsed) {
     render();
     init();
   </script>
-</body>
 
-</html>
+
+</body></html>
