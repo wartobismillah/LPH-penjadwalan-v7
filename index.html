@@ -2301,6 +2301,7 @@ function writeBackupSheet_(parsed) {
       offset = offset || 0;
       var btn = $('bulk-apply');
       var ok = startOk, fail = startFail;
+      var thumbFail = 0; // ← counter terpisah untuk kegagalan thumbnail
       var total = startOk + startFail + items.length;
 
       for (var localI = 0; localI < items.length; localI++) {
@@ -2322,44 +2323,63 @@ function writeBackupSheet_(parsed) {
 
         try {
           var thumbErrStr = '';
-          var actionSuccess = false;
           if (thumbFiles && thumbFiles.length > 0) {
-            var currentThumb = thumbFiles.shift(); // Ambil tepat 1 gambar untuk 1 video ini
-            try {
-              await apiSetThumbnail(vid, currentThumb);
-              actionSuccess = true;
-            } catch (err) {
-              if (err.message === '403_QUOTA' || (err.message && err.message.toLowerCase().includes('quota'))) {
-                // Jika error Quota, kembalikan gambar ke antrean agar bisa di-retry setelah rotasi Client ID
-                thumbFiles.unshift(currentThumb);
-                throw err;
+            var thumbSuccess = false;
+            while (thumbFiles.length > 0 && !thumbSuccess) {
+              var currentThumb = thumbFiles[0];
+              try {
+                await apiSetThumbnail(vid, currentThumb);
+                thumbSuccess = true;
+                thumbFiles.shift(); // consume it
+                // ── Delay 1.5s antar thumbnail untuk menghindari rate limit YouTube ──
+                if (thumbFiles.length > 0 || localI < items.length - 1) {
+                  await new Promise(function(res) { setTimeout(res, 1500); });
+                }
+              } catch (err) {
+                var errMsg = err.message || '';
+                // ── FIX #1: Tangkap 429 / userRateLimitExceeded sebagai pause quota ──
+                if (
+                  errMsg === '403_QUOTA' ||
+                  errMsg.toLowerCase().includes('quota') ||
+                  errMsg.includes('429') ||
+                  errMsg.toLowerCase().includes('ratelimitexceeded') ||
+                  errMsg.toLowerCase().includes('usageexceeded')
+                ) {
+                  throw err; // escalate ke catch luar → trigger rotateClientId()
+                }
+                var isInvalid = errMsg.includes('invalidImage') || errMsg.includes('400');
+                if (isInvalid) {
+                  console.warn('Thumbnail err for ' + vid + ':', errMsg, '-> Discarding image & trying next');
+                  thumbFiles.shift(); // discard this invalid image, loop will try the next one
+                } else {
+                  // ── FIX #2: Jangan pura-pura sukses — catat sebagai kegagalan nyata ──
+                  console.warn('Thumbnail upload failed for ' + vid + ':', errMsg);
+                  thumbErrStr = ' (Gagal upload thumbnail)';
+                  thumbFail++; // hitung sebagai kegagalan thumbnail
+                  thumbFiles.shift(); // buang agar tidak stuck di file yang sama
+                  break; // keluar dari while, lanjut ke video berikutnya
+                }
               }
-              // Jika error lain (misal 400 Limit YouTube Harian, atau invalid image)
-              console.warn('Thumbnail err for ' + vid + ':', err.message);
-              thumbErrStr = ' (Gagal upload thumbnail)';
             }
           }
           if (pub !== null || hasMeta) {
             await apiSet(vid, pub, hasMeta ? metadata : null, origCatId);
-            actionSuccess = true;
           }
-          
-          if (actionSuccess) {
-            if (pub !== null) {
-              A.scheduled[vid] = pub;
-            }
-            ok++;
-            if (btn) btn.textContent = 'Menyimpan ' + ok + '/' + total + '...';
-            var sIdx = A.bulk.selected.indexOf(vid);
-            if (sIdx > -1) A.bulk.selected.splice(sIdx, 1);
-            if (thumbErrStr) toast('Video tersimpan' + thumbErrStr, 'wrn');
-          } else {
-            fail++;
-            console.warn('Video ' + vid + ' dilewati/gagal: Tidak ada aksi (thumbnail/metadata) yang berhasil dilakukan.');
-            if (btn) btn.textContent = 'Menyimpan ' + ok + '/' + total + '...';
+          if (pub !== null) {
+            A.scheduled[vid] = pub;
           }
+          ok++;
+          if (btn) btn.textContent = 'Menyimpan ' + ok + '/' + total + '...';
+          var sIdx = A.bulk.selected.indexOf(vid);
+          if (sIdx > -1) A.bulk.selected.splice(sIdx, 1);
+          if (thumbErrStr) toast('⚠️ ' + getTitle(vObj).slice(0,30) + '...' + thumbErrStr, 'err');
         } catch (e) {
-          if (e.message === '403_QUOTA' || (e.message && e.message.toLowerCase().includes('quota'))) {
+          var eMsg = e.message || '';
+          // ── FIX #1 (lanjutan): Tangkap 429 dari level atas juga ──
+          var isQuota = eMsg === '403_QUOTA' || eMsg.toLowerCase().includes('quota') ||
+            eMsg.includes('429') || eMsg.toLowerCase().includes('ratelimitexceeded') ||
+            eMsg.toLowerCase().includes('usageexceeded');
+          if (isQuota) {
             // PAUSE: persist progress made so far, stash the remaining queue,
             // then auto-trigger a CID rotation + re-login instead of alert()+break.
             saveSched();
@@ -2369,7 +2389,7 @@ function writeBackupSheet_(parsed) {
               titleLines: titleLines, descText: descText, tagsArr: tagsArr, thumbFiles: thumbFiles,
               ok: ok, fail: fail, startIndex: i
             };
-            toast('Quota API habis. Mengganti Client ID otomatis & melanjutkan...', 'inf');
+            toast('Quota / Rate Limit API habis. Mengganti Client ID & melanjutkan...', 'inf');
             if (btn) { btn.textContent = 'Menunggu Client ID baru...'; }
             rotateClientId();
             return; // pause here — resumePendingTask() will pick the loop back up
@@ -2384,8 +2404,14 @@ function writeBackupSheet_(parsed) {
       saveSched();
       persistDraftState();
       A.bulk.thumbFiles = null; // clear uploaded thumbnails
-      if (fail === 0) toast('✓ ' + ok + ' video berhasil dijadwalkan!', 'ok');
-      else toast(ok + ' berhasil, ' + fail + ' gagal', 'inf');
+      // ── FIX #3: Notifikasi akhir yang akurat termasuk kegagalan thumbnail ──
+      if (fail === 0 && thumbFail === 0) {
+        toast('✓ ' + ok + ' video berhasil dijadwalkan!', 'ok');
+      } else if (fail === 0 && thumbFail > 0) {
+        toast('✓ ' + ok + ' video dijadwalkan, ' + thumbFail + ' thumbnail gagal diupload', 'inf');
+      } else {
+        toast(ok + ' berhasil, ' + fail + ' gagal' + (thumbFail > 0 ? ', ' + thumbFail + ' thumbnail gagal' : ''), 'inf');
+      }
       if (btn) { btn.disabled = false; btn.textContent = 'Terapkan Jadwal'; }
       render();
     }
