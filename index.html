@@ -2182,12 +2182,39 @@ function writeBackupSheet_(parsed) {
         },
         body: file
       });
-      var d = await r.json();
+
+      // ── Tangani HTTP-level errors (429, dll) yang mungkin bukan JSON ──
+      if (!r.ok && r.status === 429) {
+        throw new Error('RATE_LIMIT_THUMBNAIL');
+      }
+
+      var d;
+      try { d = await r.json(); } catch(jsonErr) {
+        // Response bukan JSON (misalnya 5xx HTML error page)
+        throw new Error('HTTP_' + r.status);
+      }
+
       if (d.error) {
-        if (d.error.code === 403 || (d.error.message && d.error.message.toLowerCase().includes('quota'))) {
+        // ── LOG DIAGNOSTIK: tampilkan error lengkap di console ──
+        console.error('[THUMBNAIL ERROR] videoId=' + videoId, 'HTTP=' + r.status, JSON.stringify(d.error));
+        // ── Baca reason spesifik dari error YouTube, bukan hanya kodenya ──
+        var reason = (d.error.errors && d.error.errors[0] && d.error.errors[0].reason) || '';
+        var msg = (d.error.message || '').toLowerCase();
+
+        // Quota harian habis → butuh ganti Client ID
+        if (reason === 'quotaExceeded' || msg.includes('quota exceeded') || msg.includes('daily limit')) {
           throw new Error('403_QUOTA');
         }
-        throw new Error(JSON.stringify(d.error, null, 2));
+        // Rate limit per-menit/per-token → cukup tunggu, bukan ganti CID
+        if (reason === 'userRateLimitExceeded' || reason === 'rateLimitExceeded' || d.error.code === 429) {
+          throw new Error('RATE_LIMIT_THUMBNAIL');
+        }
+        // Channel belum terverifikasi atau video tidak boleh custom thumbnail → skip
+        if (reason === 'forbidden' || reason === 'uploadForbidden' || reason === 'channelForbidden') {
+          throw new Error('THUMB_FORBIDDEN: ' + (d.error.message || reason));
+        }
+        // Error lain (invalidImage, 400, dll)
+        throw new Error(JSON.stringify(d.error));
       }
     }
 
@@ -2325,39 +2352,67 @@ function writeBackupSheet_(parsed) {
           var thumbErrStr = '';
           if (thumbFiles && thumbFiles.length > 0) {
             var thumbSuccess = false;
-            while (thumbFiles.length > 0 && !thumbSuccess) {
+            var thumbRetries = 0;
+            var maxThumbRetries = 3; // max retry saat rate limit
+            while (thumbFiles.length > 0 && !thumbSuccess && thumbRetries <= maxThumbRetries) {
               var currentThumb = thumbFiles[0];
               try {
                 await apiSetThumbnail(vid, currentThumb);
                 thumbSuccess = true;
-                thumbFiles.shift(); // consume it
-                // ── Delay 1.5s antar thumbnail untuk menghindari rate limit YouTube ──
-                if (thumbFiles.length > 0 || localI < items.length - 1) {
-                  await new Promise(function(res) { setTimeout(res, 1500); });
-                }
+                thumbFiles.shift(); // consume it — dipakai 1 file per video
+                // Delay 2s antar thumbnail untuk jaga-jaga rate limit
+                await new Promise(function(res) { setTimeout(res, 2000); });
               } catch (err) {
                 var errMsg = err.message || '';
-                // ── FIX #1: Tangkap 429 / userRateLimitExceeded sebagai pause quota ──
-                if (
-                  errMsg === '403_QUOTA' ||
-                  errMsg.toLowerCase().includes('quota') ||
-                  errMsg.includes('429') ||
-                  errMsg.toLowerCase().includes('ratelimitexceeded') ||
-                  errMsg.toLowerCase().includes('usageexceeded')
-                ) {
-                  throw err; // escalate ke catch luar → trigger rotateClientId()
+
+                if (errMsg === '403_QUOTA') {
+                  // Quota harian habis → escalate ke outer catch untuk rotate CID
+                  throw err;
                 }
+
+                if (errMsg === 'RATE_LIMIT_THUMBNAIL') {
+                  // Rate limit per-menit: tunggu 35 detik lalu retry video yang sama
+                  // JANGAN rotate CID — rate limit per-token, bukan per-project
+                  thumbRetries++;
+                  if (thumbRetries <= maxThumbRetries) {
+                    toast('⏳ Rate limit thumbnail, tunggu 35 detik... (retry ' + thumbRetries + '/' + maxThumbRetries + ')', 'inf');
+                    if (btn) btn.textContent = 'Menunggu rate limit thumbnail...';
+                    await new Promise(function(res) { setTimeout(res, 35000); });
+                    if (btn) btn.textContent = 'Menyimpan ' + ok + '/' + total + '...';
+                    // JANGAN shift — file yang sama akan dicoba ulang
+                  } else {
+                    // Sudah max retry, catat sebagai gagal dan lanjut
+                    console.warn('Thumbnail rate limit max retries for ' + vid);
+                    thumbErrStr = ' (Rate limit thumbnail, skip)';
+                    thumbFail++;
+                    thumbFiles.shift(); // buang file ini, lanjut ke video berikutnya
+                    break;
+                  }
+                  continue; // restart while loop untuk retry
+                }
+
+                if (errMsg.startsWith('THUMB_FORBIDDEN')) {
+                  // Channel belum terverifikasi atau tidak bisa custom thumbnail
+                  // → hentikan semua upload thumbnail untuk channel ini
+                  console.warn('Thumbnail forbidden for channel:', errMsg);
+                  thumbErrStr = ' (Thumbnail dilarang: channel belum terverifikasi?)';
+                  thumbFail++;
+                  // Kosongkan semua sisa thumbFiles karena semuanya akan forbidden
+                  thumbFiles.splice(0, thumbFiles.length);
+                  break;
+                }
+
                 var isInvalid = errMsg.includes('invalidImage') || errMsg.includes('400');
                 if (isInvalid) {
-                  console.warn('Thumbnail err for ' + vid + ':', errMsg, '-> Discarding image & trying next');
-                  thumbFiles.shift(); // discard this invalid image, loop will try the next one
+                  console.warn('Invalid thumbnail image for ' + vid + ', trying next file');
+                  thumbFiles.shift(); // buang file invalid, coba file berikutnya
                 } else {
-                  // ── FIX #2: Jangan pura-pura sukses — catat sebagai kegagalan nyata ──
-                  console.warn('Thumbnail upload failed for ' + vid + ':', errMsg);
-                  thumbErrStr = ' (Gagal upload thumbnail)';
-                  thumbFail++; // hitung sebagai kegagalan thumbnail
-                  thumbFiles.shift(); // buang agar tidak stuck di file yang sama
-                  break; // keluar dari while, lanjut ke video berikutnya
+                  // Error tidak dikenal — catat & skip
+                  console.warn('Thumbnail upload unknown error for ' + vid + ':', errMsg);
+                  thumbErrStr = ' (Error thumbnail tidak dikenal)';
+                  thumbFail++;
+                  thumbFiles.shift();
+                  break;
                 }
               }
             }
@@ -2375,29 +2430,24 @@ function writeBackupSheet_(parsed) {
           if (thumbErrStr) toast('⚠️ ' + getTitle(vObj).slice(0,30) + '...' + thumbErrStr, 'err');
         } catch (e) {
           var eMsg = e.message || '';
-          // ── FIX #1 (lanjutan): Tangkap 429 dari level atas juga ──
-          var isQuota = eMsg === '403_QUOTA' || eMsg.toLowerCase().includes('quota') ||
-            eMsg.includes('429') || eMsg.toLowerCase().includes('ratelimitexceeded') ||
-            eMsg.toLowerCase().includes('usageexceeded');
-          if (isQuota) {
-            // PAUSE: persist progress made so far, stash the remaining queue,
-            // then auto-trigger a CID rotation + re-login instead of alert()+break.
+          // Hanya escalate jika benar-benar quota harian habis (bukan rate limit)
+          if (eMsg === '403_QUOTA') {
             saveSched();
             A.pendingTask = {
               type: 'bulk',
-              remaining: items.slice(localI), // includes the item that just failed, so it gets retried
+              remaining: items.slice(localI),
               titleLines: titleLines, descText: descText, tagsArr: tagsArr, thumbFiles: thumbFiles,
               ok: ok, fail: fail, startIndex: i
             };
-            toast('Quota / Rate Limit API habis. Mengganti Client ID & melanjutkan...', 'inf');
+            toast('Quota harian API habis. Mengganti Client ID & melanjutkan...', 'inf');
             if (btn) { btn.textContent = 'Menunggu Client ID baru...'; }
             rotateClientId();
-            return; // pause here — resumePendingTask() will pick the loop back up
+            return;
           }
           showErrorModal(e.message);
           fail++;
         }
-      }
+      } // end for loop
 
       // Reached only on a genuine finish (first pass with no interruption, or a
       // resumed tail that completed without hitting quota again).
