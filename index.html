@@ -2104,7 +2104,6 @@ function writeBackupSheet_(parsed) {
         // ── Langkah 1: Ambil playlistItems (JAUH LEBIH HEMAT KUOTA dibanding /search) ──
         var allSearchItems = [];
         var pageToken = '';
-        var reachedOld = false;
         do {
           var url = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=' + targetPlaylistId + '&maxResults=50';
           if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
@@ -2112,17 +2111,25 @@ function writeBackupSheet_(parsed) {
           var d1 = await r1.json();
           if (d1.error) throw new Error(d1.error.message);
           var pageItems = d1.items || [];
+          // PERBAIKAN KRITIS: Hanya pakai videoPublishedAt, BUKAN snippet.publishedAt!
+          // - snippet.publishedAt = tanggal UPLOAD (kapan dibuat sebagai private) → menyesatkan
+          // - videoPublishedAt   = tanggal TAYANG; null jika belum tayang (private/scheduled) ✓
+          // Video private yg diupload lama tapi dijadwal ke depan:
+          //   snippet.publishedAt lama → dulu salah di-filter & di-break!
+          //   videoPublishedAt = null → TIDAK ter-filter → benar ✓
+          // Ganti break→continue: skip video publik lama, tetap cari private di bawahnya.
+          // Berhenti paginasi hanya jika SELURUH halaman berisi video publik lama.
+          var allOldInPage = pageItems.length > 0;
           for (var pi = 0; pi < pageItems.length; pi++) {
-            // Untuk custom playlist, tanggal upload asli ada di videoPublishedAt
-            var pubAt = (pageItems[pi].contentDetails && pageItems[pi].contentDetails.videoPublishedAt) ||
-                        (pageItems[pi].snippet && pageItems[pi].snippet.publishedAt);
+            var pubAt = pageItems[pi].contentDetails && pageItems[pi].contentDetails.videoPublishedAt;
             if (pubAt && new Date(pubAt) < cutoff) {
-              reachedOld = true;
-              break; 
+              continue; // video publik lama → skip saja, jangan break!
             }
+            allOldInPage = false;
             allSearchItems.push(pageItems[pi]);
           }
-          pageToken = reachedOld ? '' : (d1.nextPageToken || '');
+          // Hentikan paginasi hanya jika seluruh halaman ini adalah video publik lama.
+          pageToken = allOldInPage ? '' : (d1.nextPageToken || '');
         } while (pageToken);
 
         if (!allSearchItems.length) { A.videos = []; A.step = 'dashboard'; render(); return; }
