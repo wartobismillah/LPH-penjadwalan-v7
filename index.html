@@ -2143,8 +2143,19 @@ function writeBackupSheet_(parsed) {
         }
 
         A.videos = allVideos;
-        // ── Langkah 3: Baca jadwal yang sudah ada di YouTube ───────
-        A.videos.forEach(function (v) { if (v.status && v.status.publishAt) A.scheduled[v.id] = v.status.publishAt; });
+        // ── Langkah 3: Sinkronisasi A.scheduled dengan data YouTube API ─────────
+        // Untuk setiap video yang berhasil di-fetch:
+        //   - Jika punya publishAt → update A.scheduled (sudah/masih terjadwal)
+        //   - Jika TIDAK punya publishAt tapi ada di A.scheduled → HAPUS
+        //     (artinya video sudah tayang/Published, entry lama di localStorage jadi stale)
+        // Ini mencegah "phantom entries" dari sesi lama menumpuk di kalender.
+        A.videos.forEach(function (v) {
+          if (v.status && v.status.publishAt) {
+            A.scheduled[v.id] = v.status.publishAt;
+          } else if (A.scheduled[v.id]) {
+            delete A.scheduled[v.id]; // bersihkan entry stale
+          }
+        });
         saveSched(); A.step = 'dashboard'; render();
       } catch (e) {
         var msg = e.message || '';
@@ -3329,7 +3340,7 @@ function writeBackupSheet_(parsed) {
 
       var ev = {};
       function addEv(videoId, pubStr, isTemp) {
-         // Gunakan utcToLocal() agar tanggal event selalu sesuai timezone lokal,
+        // Gunakan utcToLocal() agar tanggal event selalu sesuai timezone lokal,
         // konsisten dengan cara kalender menampilkan tanggal (cellY-cellM-day, bulan 0-based).
         var local = utcToLocal(pubStr);
         if (!local.date) return;
@@ -3338,14 +3349,10 @@ function writeBackupSheet_(parsed) {
         var k = parts[0] + '-' + (parseInt(parts[1], 10) - 1) + '-' + parseInt(parts[2], 10);
         if (!ev[k]) ev[k] = [];
         var v = A.videos.find(function (x) { return x.id === videoId });
-        // FIX: Jika video tidak ada di A.videos (misal: diupload >90 hari lalu,
-        // atau dijadwalkan via YouTube Studio dan belum di-refresh),
-        // tetap tampilkan event di kalender dengan placeholder title.
-        // Sebelumnya: diam-diam skip → event tidak muncul di kalender!
-        if (!v) {
-          v = { id: videoId, snippet: { title: '📹 Video terjadwal (...' + videoId.slice(-6) + ')' } };
-        }
-        ev[k].push({ video: v, temp: isTemp });
+        // Hanya tampilkan event jika video ada di A.videos (data valid dari API).
+        // Entry di A.scheduled yang videonya tidak ada = data stale / sudah published.
+        // Data stale ini dibersihkan otomatis saat fetchVideos() berjalan.
+        if (v) ev[k].push({ video: v, temp: isTemp });
       }
       Object.entries(A.scheduled).forEach(function (e) { addEv(e[0], e[1], false); });
       Object.entries(A.calScheduled).forEach(function (e) { addEv(e[0], e[1], true); });
