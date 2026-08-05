@@ -3329,8 +3329,13 @@ function writeBackupSheet_(parsed) {
 
       var ev = {};
       function addEv(videoId, pubStr, isTemp) {
-        var d = new Date(pubStr);
-        var k = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+         // Gunakan utcToLocal() agar tanggal event selalu sesuai timezone lokal,
+        // konsisten dengan cara kalender menampilkan tanggal (cellY-cellM-day, bulan 0-based).
+        var local = utcToLocal(pubStr);
+        if (!local.date) return;
+        var parts = local.date.split('-');
+        // parts[1] adalah bulan 1-based, kalender pakai 0-based → kurangi 1
+        var k = parts[0] + '-' + (parseInt(parts[1], 10) - 1) + '-' + parseInt(parts[2], 10);
         if (!ev[k]) ev[k] = [];
         var v = A.videos.find(function (x) { return x.id === videoId });
         if (v) ev[k].push({ video: v, temp: isTemp });
