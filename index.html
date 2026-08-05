@@ -3338,7 +3338,14 @@ function writeBackupSheet_(parsed) {
         var k = parts[0] + '-' + (parseInt(parts[1], 10) - 1) + '-' + parseInt(parts[2], 10);
         if (!ev[k]) ev[k] = [];
         var v = A.videos.find(function (x) { return x.id === videoId });
-        if (v) ev[k].push({ video: v, temp: isTemp });
+        // FIX: Jika video tidak ada di A.videos (misal: diupload >90 hari lalu,
+        // atau dijadwalkan via YouTube Studio dan belum di-refresh),
+        // tetap tampilkan event di kalender dengan placeholder title.
+        // Sebelumnya: diam-diam skip → event tidak muncul di kalender!
+        if (!v) {
+          v = { id: videoId, snippet: { title: '📹 Video terjadwal (...' + videoId.slice(-6) + ')' } };
+        }
+        ev[k].push({ video: v, temp: isTemp });
       }
       Object.entries(A.scheduled).forEach(function (e) { addEv(e[0], e[1], false); });
       Object.entries(A.calScheduled).forEach(function (e) { addEv(e[0], e[1], true); });
